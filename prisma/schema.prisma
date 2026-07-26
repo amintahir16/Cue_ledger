@@ -1,0 +1,224 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Better Auth ───────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id @default(cuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verification")
+}
+
+// ─── Club domain ───────────────────────────────────────────
+
+enum TableStatus {
+  AVAILABLE
+  OCCUPIED
+  PAUSED
+}
+
+enum SessionStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  WAIVED
+}
+
+enum ExpenseCategory {
+  ELECTRICITY
+  RENT
+  SALARY
+  MAINTENANCE
+  SUPPLIES
+  MARKETING
+  EQUIPMENT
+  OTHER
+}
+
+model ClubSettings {
+  id              String   @id @default("default")
+  clubName        String   @default("My Snooker Club")
+  currency        String   @default("PKR")
+  currencySymbol  String   @default("Rs")
+  defaultHourlyRate Decimal @default(500) @db.Decimal(10, 2)
+  vipHourlyRate   Decimal  @default(800) @db.Decimal(10, 2)
+  minimumCharge   Decimal  @default(0) @db.Decimal(10, 2)
+  /// @deprecated Use billingIncrementSeconds
+  billingIncrementMinutes Int @default(1)
+  billingIncrementSeconds Int @default(1)
+  timezone        String   @default("Asia/Karachi")
+  updatedAt       DateTime @updatedAt
+}
+
+model SnookerTable {
+  id          String      @id @default(cuid())
+  name        String
+  number      Int         @unique
+  hourlyRate  Decimal     @db.Decimal(10, 2)
+  isVip       Boolean     @default(false)
+  status      TableStatus @default(AVAILABLE)
+  isActive    Boolean     @default(true)
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  sessions    GameSession[]
+
+  @@map("snooker_table")
+}
+
+model Customer {
+  id        String        @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  sessions  GameSession[]
+
+  @@index([name])
+  @@index([phone])
+}
+
+model GameSession {
+  id               String        @id @default(cuid())
+  tableId          String
+  table            SnookerTable  @relation(fields: [tableId], references: [id])
+  customerId       String?
+  customer         Customer?     @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerName     String?
+  status           SessionStatus @default(ACTIVE)
+  startedAt        DateTime
+  pausedAt         DateTime?
+  endedAt          DateTime?
+  totalPausedMs    Int           @default(0)
+  durationSeconds  Int?
+  hourlyRate       Decimal       @db.Decimal(10, 2)
+  tableCharge      Decimal?      @db.Decimal(12, 2)
+  addonsTotal      Decimal       @default(0) @db.Decimal(12, 2)
+  totalCharge      Decimal?      @db.Decimal(12, 2)
+  paymentStatus    PaymentStatus @default(PENDING)
+  paidAt           DateTime?
+  notes            String?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  addons           SessionAddon[]
+
+  @@index([startedAt])
+  @@index([endedAt])
+  @@index([status])
+  @@index([tableId, status])
+}
+
+model Product {
+  id          String         @id @default(cuid())
+  name        String
+  price       Decimal        @db.Decimal(10, 2)
+  category    String         @default("F&B")
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  addons      SessionAddon[]
+}
+
+model SessionAddon {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name      String
+  unitPrice Decimal     @db.Decimal(10, 2)
+  quantity  Int         @default(1)
+  lineTotal Decimal     @db.Decimal(12, 2)
+  createdAt DateTime    @default(now())
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  category    ExpenseCategory
+  title       String
+  amount      Decimal         @db.Decimal(12, 2)
+  expenseDate DateTime        @db.Date
+  notes       String?
+  employeeName String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([expenseDate])
+  @@index([category])
+}
+
+model DailyClosing {
+  id              String   @id @default(cuid())
+  closingDate     DateTime @unique @db.Date
+  openingCash     Decimal  @default(0) @db.Decimal(12, 2)
+  closingCash     Decimal  @default(0) @db.Decimal(12, 2)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
