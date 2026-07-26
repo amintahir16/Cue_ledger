@@ -8,6 +8,7 @@ import {
 } from "@/lib/api";
 import { toNumber } from "@/lib/billing";
 import { prisma } from "@/lib/db";
+import { getOrCreateClubSettings } from "@/lib/settings";
 
 function serializeSettings(settings: {
   defaultHourlyRate: unknown;
@@ -17,6 +18,7 @@ function serializeSettings(settings: {
 }) {
   return {
     id: settings.id,
+    userId: settings.userId,
     clubName: settings.clubName,
     currency: settings.currency,
     currencySymbol: settings.currencySymbol,
@@ -35,12 +37,7 @@ export async function GET() {
   if (!session) return unauthorized();
 
   try {
-    let settings = await prisma.clubSettings.findUnique({
-      where: { id: "default" },
-    });
-    if (!settings) {
-      settings = await prisma.clubSettings.create({ data: { id: "default" } });
-    }
+    const settings = await getOrCreateClubSettings(session.user.id);
     return NextResponse.json({ settings: serializeSettings(settings) });
   } catch (err) {
     console.error("GET /api/settings", err);
@@ -69,12 +66,18 @@ export async function PATCH(req: Request) {
       return badRequest(parsed.error.issues[0]?.message || "Invalid");
     }
 
+    const userId = session.user.id;
+
     const result = await prisma.$transaction(async (tx) => {
-      const updated = await tx.clubSettings.upsert({
-        where: { id: "default" },
-        update: parsed.data,
-        create: { id: "default", ...parsed.data },
-      });
+      const existing = await tx.clubSettings.findUnique({ where: { userId } });
+      const updated = existing
+        ? await tx.clubSettings.update({
+            where: { userId },
+            data: parsed.data,
+          })
+        : await tx.clubSettings.create({
+            data: { userId, ...parsed.data },
+          });
 
       let standardUpdated = 0;
       let vipUpdated = 0;

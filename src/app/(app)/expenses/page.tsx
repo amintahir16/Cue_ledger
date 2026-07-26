@@ -15,7 +15,9 @@ import {
   Label,
   PageHeader,
   Select,
+  Skeleton,
   StatCard,
+  TableSkeleton,
 } from "@/components/ui";
 import { money, toDateInputValue } from "@/lib/billing";
 
@@ -46,6 +48,7 @@ export default function ExpensesPage() {
   );
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
     category: "ELECTRICITY",
     title: "",
@@ -56,15 +59,20 @@ export default function ExpensesPage() {
   });
 
   const load = useCallback(async () => {
-    const q = filterToQuery(filter);
-    const params = new URLSearchParams({
-      date: q.date,
-      period: q.period,
-    });
-    const res = await fetch(`/api/expenses?${params}`);
-    const json = await res.json();
-    setExpenses(json.expenses || []);
-    setTotal(json.total || 0);
+    setLoading(true);
+    try {
+      const q = filterToQuery(filter);
+      const params = new URLSearchParams({
+        date: q.date,
+        period: q.period,
+      });
+      const res = await fetch(`/api/expenses?${params}`);
+      const json = await res.json();
+      setExpenses(json.expenses || []);
+      setTotal(json.total || 0);
+    } finally {
+      setLoading(false);
+    }
   }, [filter]);
 
   useEffect(() => {
@@ -121,15 +129,23 @@ export default function ExpensesPage() {
         }
       />
       <p className="mb-4 -mt-3 text-xs text-[var(--color-text)]/55">
-        {filterHint(filter)} · {expenses.length} expense(s)
+        {filterHint(filter)}
+        {loading ? "" : ` · ${expenses.length} expense(s)`}
       </p>
 
       <div className="mb-6 max-w-xs">
-        <StatCard
-          label="Expenses in selected range"
-          value={money(total, "Rs", { whole: true })}
-          accent="red"
-        />
+        {loading ? (
+          <div className="rounded-xl border border-[var(--color-primary)]/10 border-l-4 border-l-[var(--color-primary)] bg-white/90 p-4 shadow-sm">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="mt-3 h-7 w-24" />
+          </div>
+        ) : (
+          <StatCard
+            label="Expenses in selected range"
+            value={money(total, "Rs", { whole: true })}
+            accent="red"
+          />
+        )}
       </div>
 
       <form
@@ -212,66 +228,70 @@ export default function ExpensesPage() {
         </div>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-[var(--color-primary)]/10 bg-white/90 shadow-sm">
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="border-b border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 text-xs uppercase tracking-wide text-[var(--color-text)]/55">
-            <tr>
-              <th className="px-4 py-3">Date</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Title</th>
-              <th className="px-4 py-3">Employee</th>
-              <th className="px-4 py-3 text-right">Amount</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {expenses.length === 0 ? (
+      {loading ? (
+        <TableSkeleton rows={5} cols={5} />
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-[var(--color-primary)]/10 bg-white/90 shadow-sm">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="border-b border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 text-xs uppercase tracking-wide text-[var(--color-text)]/55">
               <tr>
-                <td
-                  colSpan={6}
-                  className="px-4 py-8 text-center text-[var(--color-text)]/45"
-                >
-                  No expenses for this range.
-                </td>
+                <th className="px-4 py-3">Date</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3">Title</th>
+                <th className="px-4 py-3">Employee</th>
+                <th className="px-4 py-3 text-right">Amount</th>
+                <th className="px-4 py-3" />
               </tr>
-            ) : (
-              expenses.map((e) => (
-                <tr
-                  key={e.id}
-                  className="border-b border-[var(--color-primary)]/5"
-                >
-                  <td className="px-4 py-3">
-                    {new Date(e.expenseDate).toLocaleDateString()}
-                  </td>
-                  <td className="px-4 py-3 font-medium">{e.category}</td>
-                  <td className="px-4 py-3">
-                    {e.title}
-                    {e.notes ? (
-                      <span className="block text-xs text-[var(--color-text)]/45">
-                        {e.notes}
-                      </span>
-                    ) : null}
-                  </td>
-                  <td className="px-4 py-3">{e.employeeName || "—"}</td>
-                  <td className="px-4 py-3 text-right font-[family-name:var(--font-heading)] font-bold">
-                    {money(e.amount, "Rs", { whole: true })}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      type="button"
-                      className="cursor-pointer rounded p-1.5 text-[var(--color-text)]/40 transition-colors hover:bg-red-50 hover:text-red-600"
-                      onClick={() => remove(e.id)}
-                      aria-label="Delete expense"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+            </thead>
+            <tbody>
+              {expenses.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="px-4 py-8 text-center text-[var(--color-text)]/45"
+                  >
+                    No expenses for this range.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                expenses.map((e) => (
+                  <tr
+                    key={e.id}
+                    className="border-b border-[var(--color-primary)]/5"
+                  >
+                    <td className="px-4 py-3">
+                      {new Date(e.expenseDate).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 font-medium">{e.category}</td>
+                    <td className="px-4 py-3">
+                      {e.title}
+                      {e.notes ? (
+                        <span className="block text-xs text-[var(--color-text)]/45">
+                          {e.notes}
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3">{e.employeeName || "—"}</td>
+                    <td className="px-4 py-3 text-right font-[family-name:var(--font-heading)] font-bold">
+                      {money(e.amount, "Rs", { whole: true })}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        className="cursor-pointer rounded p-1.5 text-[var(--color-text)]/40 transition-colors hover:bg-red-50 hover:text-red-600"
+                        onClick={() => remove(e.id)}
+                        aria-label="Delete expense"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

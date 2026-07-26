@@ -3,6 +3,7 @@ import { z } from "zod";
 import { badRequest, requireSession, unauthorized } from "@/lib/api";
 import { prisma } from "@/lib/db";
 import { toNumber } from "@/lib/billing";
+import { getOrCreateClubSettings } from "@/lib/settings";
 
 export async function GET() {
   const session = await requireSession();
@@ -68,13 +69,13 @@ export async function POST(req: Request) {
   });
   if (exists) return badRequest(`Table number ${parsed.data.number} already exists`);
 
-  const settings = await prisma.clubSettings.findUnique({ where: { id: "default" } });
+  const settings = await getOrCreateClubSettings(session.user.id);
   const isVip = parsed.data.isVip ?? false;
   const hourlyRate =
     parsed.data.hourlyRate ??
     (isVip
-      ? toNumber(settings?.vipHourlyRate) || 800
-      : toNumber(settings?.defaultHourlyRate) || 500);
+      ? toNumber(settings.vipHourlyRate) || 800
+      : toNumber(settings.defaultHourlyRate) || 500);
 
   const table = await prisma.snookerTable.create({
     data: {

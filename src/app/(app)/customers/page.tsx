@@ -1,7 +1,13 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Button, Input, Label, PageHeader } from "@/components/ui";
+import {
+  Button,
+  CardGridSkeleton,
+  Input,
+  Label,
+  PageHeader,
+} from "@/components/ui";
 
 type Customer = {
   id: string;
@@ -14,12 +20,18 @@ type Customer = {
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: "", phone: "", email: "", notes: "" });
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/customers");
-    const json = await res.json();
-    setCustomers(json.customers || []);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/customers");
+      const json = await res.json();
+      setCustomers(json.customers || []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -94,25 +106,29 @@ export default function CustomersPage() {
         </div>
       </form>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {customers.map((c) => (
-          <div
-            key={c.id}
-            className="rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm"
-          >
-            <p className="font-semibold text-[var(--color-text)]">{c.name}</p>
-            <p className="mt-1 text-xs text-[var(--color-text)]/55">
-              {c.phone || "No phone"} · {c._count.sessions} sessions
-            </p>
-            {c.notes ? (
-              <p className="mt-2 text-sm text-[var(--color-text)]/70">{c.notes}</p>
-            ) : null}
-          </div>
-        ))}
-        {customers.length === 0 ? (
-          <p className="text-sm text-[var(--color-text)]/45">No customers yet.</p>
-        ) : null}
-      </div>
+      {loading ? (
+        <CardGridSkeleton count={6} />
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {customers.map((c) => (
+            <div
+              key={c.id}
+              className="rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm"
+            >
+              <p className="font-semibold text-[var(--color-text)]">{c.name}</p>
+              <p className="mt-1 text-xs text-[var(--color-text)]/55">
+                {c.phone || "No phone"} · {c._count.sessions} sessions
+              </p>
+              {c.notes ? (
+                <p className="mt-2 text-sm text-[var(--color-text)]/70">{c.notes}</p>
+              ) : null}
+            </div>
+          ))}
+          {customers.length === 0 ? (
+            <p className="text-sm text-[var(--color-text)]/45">No customers yet.</p>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

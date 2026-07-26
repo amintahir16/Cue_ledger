@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Button, Input, Label, PageHeader } from "@/components/ui";
+import { Button, Input, Label, PageHeader, TableSkeleton } from "@/components/ui";
 import { money } from "@/lib/billing";
 
 type Product = {
@@ -13,12 +13,18 @@ type Product = {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ name: "", price: "", category: "F&B" });
 
   const load = useCallback(async () => {
-    const res = await fetch("/api/products");
-    const json = await res.json();
-    setProducts(json.products || []);
+    setLoading(true);
+    try {
+      const res = await fetch("/api/products");
+      const json = await res.json();
+      setProducts(json.products || []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -92,26 +98,41 @@ export default function ProductsPage() {
         </div>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-[var(--color-primary)]/10 bg-white/90 shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 text-xs uppercase tracking-wide text-[var(--color-text)]/55">
-            <tr>
-              <th className="px-4 py-3">Name</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3 text-right">Price</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id} className="border-b border-[var(--color-primary)]/5">
-                <td className="px-4 py-3 font-semibold">{p.name}</td>
-                <td className="px-4 py-3">{p.category}</td>
-                <td className="px-4 py-3 text-right font-bold">{money(p.price)}</td>
+      {loading ? (
+        <TableSkeleton rows={5} cols={3} />
+      ) : (
+        <div className="overflow-x-auto rounded-xl border border-[var(--color-primary)]/10 bg-white/90 shadow-sm">
+          <table className="w-full text-left text-sm">
+            <thead className="border-b border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 text-xs uppercase tracking-wide text-[var(--color-text)]/55">
+              <tr>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Category</th>
+                <th className="px-4 py-3 text-right">Price</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {products.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="px-4 py-8 text-center text-[var(--color-text)]/45"
+                  >
+                    No products yet.
+                  </td>
+                </tr>
+              ) : (
+                products.map((p) => (
+                  <tr key={p.id} className="border-b border-[var(--color-primary)]/5">
+                    <td className="px-4 py-3 font-semibold">{p.name}</td>
+                    <td className="px-4 py-3">{p.category}</td>
+                    <td className="px-4 py-3 text-right font-bold">{money(p.price)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

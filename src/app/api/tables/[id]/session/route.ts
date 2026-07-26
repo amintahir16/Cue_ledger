@@ -9,6 +9,7 @@ import {
   toNumber,
 } from "@/lib/billing";
 import { prisma } from "@/lib/db";
+import { getOrCreateClubSettings } from "@/lib/settings";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -32,9 +33,9 @@ export async function POST(req: Request, ctx: Ctx) {
   const table = await prisma.snookerTable.findUnique({ where: { id: tableId } });
   if (!table || !table.isActive) return notFound("Table not found");
 
-  const settings = await prisma.clubSettings.findUnique({ where: { id: "default" } });
-  const minimumCharge = toNumber(settings?.minimumCharge);
-  const billingIncrementSeconds = settings?.billingIncrementSeconds ?? 1;
+  const settings = await getOrCreateClubSettings(authSession.user.id);
+  const minimumCharge = toNumber(settings.minimumCharge);
+  const billingIncrementSeconds = settings.billingIncrementSeconds ?? 1;
 
   const active = await prisma.gameSession.findFirst({
     where: { tableId, status: { in: ["ACTIVE", "PAUSED"] } },
@@ -48,8 +49,8 @@ export async function POST(req: Request, ctx: Ctx) {
     // Always charge using the latest Settings rates at game start
     const sessionRate = resolveHourlyRate({
       isVip: table.isVip,
-      defaultHourlyRate: settings?.defaultHourlyRate,
-      vipHourlyRate: settings?.vipHourlyRate,
+      defaultHourlyRate: settings.defaultHourlyRate,
+      vipHourlyRate: settings.vipHourlyRate,
       tableHourlyRate: table.hourlyRate,
     });
     if (sessionRate <= 0) {

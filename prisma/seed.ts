@@ -13,25 +13,10 @@ async function main() {
   const password = process.env.ADMIN_PASSWORD || "Admin@12345";
   const name = process.env.ADMIN_NAME || "Club Admin";
 
-  await prisma.clubSettings.upsert({
-    where: { id: "default" },
-    update: {},
-    create: {
-      id: "default",
-      clubName: "CueLedger Snooker Club",
-      currency: "PKR",
-      currencySymbol: "Rs",
-      defaultHourlyRate: 500,
-      vipHourlyRate: 800,
-      minimumCharge: 100,
-      billingIncrementSeconds: 1,
-    },
-  });
-
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (!existing) {
+  let user = await prisma.user.findUnique({ where: { email } });
+  if (!user) {
     const hashed = await hashPassword(password);
-    const user = await prisma.user.create({
+    user = await prisma.user.create({
       data: {
         name,
         email,
@@ -50,6 +35,21 @@ async function main() {
   } else {
     console.log(`Admin already exists: ${email}`);
   }
+
+  await prisma.clubSettings.upsert({
+    where: { userId: user.id },
+    update: {},
+    create: {
+      userId: user.id,
+      clubName: "CueLedger Snooker Club",
+      currency: "PKR",
+      currencySymbol: "Rs",
+      defaultHourlyRate: 500,
+      vipHourlyRate: 800,
+      minimumCharge: 100,
+      billingIncrementSeconds: 1,
+    },
+  });
 
   const tableCount = await prisma.snookerTable.count();
   if (tableCount === 0) {

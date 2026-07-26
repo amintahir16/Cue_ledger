@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { auth } from "@/lib/auth";
-import { prisma } from "@/lib/db";
+import { getOrCreateClubSettings } from "@/lib/settings";
 
 export default async function AppLayout({
   children,
@@ -14,9 +14,7 @@ export default async function AppLayout({
   });
   if (!session) redirect("/login");
 
-  const settings = await prisma.clubSettings.findUnique({
-    where: { id: "default" },
-  });
+  const settings = await getOrCreateClubSettings(session.user.id);
 
-  return <AppShell clubName={settings?.clubName}>{children}</AppShell>;
+  return <AppShell clubName={settings.clubName}>{children}</AppShell>;
 }

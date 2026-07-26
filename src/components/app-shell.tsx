@@ -14,8 +14,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { signOut } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
+
+export const CLUB_NAME_UPDATED_EVENT = "cueledger:club-name-updated";
 
 const nav = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -37,6 +40,21 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [displayName, setDisplayName] = useState(clubName || "Snooker Club");
+
+  useEffect(() => {
+    setDisplayName(clubName || "Snooker Club");
+  }, [clubName]);
+
+  useEffect(() => {
+    function onClubNameUpdated(event: Event) {
+      const detail = (event as CustomEvent<{ clubName?: string }>).detail;
+      if (detail?.clubName) setDisplayName(detail.clubName);
+    }
+    window.addEventListener(CLUB_NAME_UPDATED_EVENT, onClubNameUpdated);
+    return () =>
+      window.removeEventListener(CLUB_NAME_UPDATED_EVENT, onClubNameUpdated);
+  }, []);
 
   async function handleLogout() {
     await signOut();
@@ -61,16 +79,16 @@ export function AppShell({
 
       <div className="relative mx-auto flex min-h-screen max-w-[1440px]">
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-[var(--color-primary)]/10 bg-white/70 p-4 backdrop-blur-md md:flex">
-          <div className="mb-8 flex items-center gap-3 px-2 pt-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-primary)] text-white shadow-md">
+          <div className="mb-8 flex items-start gap-3 px-2 pt-2">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)] text-white shadow-md">
               <CircleDot className="h-5 w-5" />
             </div>
-            <div>
-              <p className="font-[family-name:var(--font-heading)] text-sm font-bold tracking-tight text-[var(--color-primary)]">
-                CueLedger
-              </p>
-              <p className="truncate text-xs text-[var(--color-text)]/60">
-                {clubName || "Snooker Club"}
+            <div className="min-w-0 flex-1">
+              <p
+                className="break-words font-[family-name:var(--font-heading)] text-sm font-bold leading-snug tracking-tight text-[var(--color-primary)]"
+                title={displayName}
+              >
+                {displayName}
               </p>
             </div>
           </div>
@@ -110,11 +128,14 @@ export function AppShell({
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-20 border-b border-[var(--color-primary)]/10 bg-white/80 px-4 py-3 backdrop-blur-md md:hidden">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CircleDot className="h-5 w-5 text-[var(--color-primary)]" />
-                <span className="font-[family-name:var(--font-heading)] font-bold text-[var(--color-primary)]">
-                  CueLedger
-                </span>
+              <div className="flex min-w-0 items-start gap-2">
+                <CircleDot className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-primary)]" />
+                <p
+                  className="break-words font-[family-name:var(--font-heading)] font-bold leading-snug text-[var(--color-primary)]"
+                  title={displayName}
+                >
+                  {displayName}
+                </p>
               </div>
               <button
                 type="button"

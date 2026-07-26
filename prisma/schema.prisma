@@ -19,6 +19,7 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  clubSettings  ClubSettings?
 
   @@map("user")
 }
@@ -100,7 +101,9 @@ enum ExpenseCategory {
 }
 
 model ClubSettings {
-  id              String   @id @default("default")
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   clubName        String   @default("My Snooker Club")
   currency        String   @default("PKR")
   currencySymbol  String   @default("Rs")

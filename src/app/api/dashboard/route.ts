@@ -3,6 +3,7 @@ import { z } from "zod";
 import { badRequest, requireSession, unauthorized } from "@/lib/api";
 import { parseLocalDate, periodRange, toNumber } from "@/lib/billing";
 import { prisma } from "@/lib/db";
+import { getOrCreateClubSettings } from "@/lib/settings";
 
 export async function GET(req: NextRequest) {
   const session = await requireSession();
@@ -128,16 +129,14 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const settings = await prisma.clubSettings.findUnique({
-    where: { id: "default" },
-  });
+  const settings = await getOrCreateClubSettings(session.user.id);
 
   return NextResponse.json({
     period: period.data,
     date: dateParam || null,
     range: { start, end },
-    currencySymbol: settings?.currencySymbol || "Rs",
-    clubName: settings?.clubName || "Snooker Club",
+    currencySymbol: settings.currencySymbol || "Rs",
+    clubName: settings.clubName || "Snooker Club",
     stats: {
       revenue: round2(revenue),
       paidRevenue: round2(paidRevenue),

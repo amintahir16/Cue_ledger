@@ -199,7 +199,7 @@ export default function DashboardPage() {
               <h2 className="mb-4 font-[family-name:var(--font-heading)] text-sm font-bold text-[var(--color-primary)]">
                 Recent sessions
               </h2>
-              <ul className="space-y-3">
+              <ul className="h-64 space-y-3 overflow-y-auto pr-1">
                 {(data?.recentSessions || []).length === 0 ? (
                   <li className="text-sm text-[var(--color-text)]/50">No completed games yet.</li>
                 ) : (

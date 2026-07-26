@@ -1,7 +1,9 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Button, Input, Label, PageHeader } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { CLUB_NAME_UPDATED_EVENT } from "@/components/app-shell";
+import { Button, FormSkeleton, Input, Label, PageHeader } from "@/components/ui";
 
 type Settings = {
   clubName: string;
@@ -15,6 +17,7 @@ type Settings = {
 };
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [form, setForm] = useState<Settings | null>(null);
   const [saved, setSaved] = useState(false);
   const [syncNote, setSyncNote] = useState("");
@@ -65,6 +68,17 @@ export default function SettingsPage() {
         vipHourlyRate: json.settings?.vipHourlyRate ?? form.vipHourlyRate,
         billingIncrementSeconds: json.settings?.billingIncrementSeconds ?? 1,
       });
+
+      const nextName = json.settings?.clubName as string | undefined;
+      if (nextName) {
+        window.dispatchEvent(
+          new CustomEvent(CLUB_NAME_UPDATED_EVENT, {
+            detail: { clubName: nextName },
+          }),
+        );
+        router.refresh();
+      }
+
       const synced = json.synced as
         | { standardTables?: number; vipTables?: number }
         | undefined;
@@ -95,7 +109,17 @@ export default function SettingsPage() {
   }
 
   if (!form) {
-    return <div className="h-40 animate-pulse rounded-xl bg-white/70" />;
+    return (
+      <div>
+        <PageHeader
+          title="Club settings"
+          description="Standard and VIP hourly rates, currency, and per-second billing rules. Saving rates updates all matching tables."
+        />
+        <div className="max-w-xl">
+          <FormSkeleton fields={8} />
+        </div>
+      </div>
+    );
   }
 
   return (
