@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import {
   DateFilterControls,
   DateFilterValue,
@@ -32,6 +32,8 @@ const CATEGORIES = [
   "OTHER",
 ] as const;
 
+const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+
 type Expense = {
   id: string;
   category: string;
@@ -40,6 +42,26 @@ type Expense = {
   expenseDate: string;
   notes: string | null;
   employeeName: string | null;
+  createdAt: string;
+};
+
+function canEditExpense(createdAt: string) {
+  return Date.now() - new Date(createdAt).getTime() <= TWENTY_FOUR_HOURS_MS;
+}
+
+function toExpenseDateInput(value: string) {
+  const match = /^(\d{4}-\d{2}-\d{2})/.exec(value);
+  if (match) return match[1];
+  return toDateInputValue(new Date(value));
+}
+
+const emptyForm = {
+  category: "ELECTRICITY",
+  title: "",
+  amount: "",
+  expenseDate: toDateInputValue(),
+  employeeName: "",
+  notes: "",
 };
 
 export default function ExpensesPage() {
@@ -49,14 +71,8 @@ export default function ExpensesPage() {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({
-    category: "ELECTRICITY",
-    title: "",
-    amount: "",
-    expenseDate: toDateInputValue(),
-    employeeName: "",
-    notes: "",
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(emptyForm);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,39 +95,71 @@ export default function ExpensesPage() {
     load();
   }, [load]);
 
+  function startEdit(e: Expense) {
+    if (!canEditExpense(e.createdAt)) {
+      alert("Expenses can only be edited within 24 hours of creation");
+      return;
+    }
+    setEditingId(e.id);
+    setForm({
+      category: e.category,
+      title: e.title,
+      amount: String(e.amount),
+      expenseDate: toExpenseDateInput(e.expenseDate),
+      employeeName: e.employeeName || "",
+      notes: e.notes || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setForm({ ...emptyForm, expenseDate: toDateInputValue() });
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     const entryDate = form.expenseDate;
-    const res = await fetch("/api/expenses", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        category: form.category,
-        title: form.title,
-        amount: Number(form.amount),
-        expenseDate: entryDate,
-        employeeName: form.employeeName || undefined,
-        notes: form.notes || undefined,
-      }),
-    });
+    const payload = {
+      category: form.category,
+      title: form.title,
+      amount: Number(form.amount),
+      expenseDate: entryDate,
+      employeeName: form.employeeName || null,
+      notes: form.notes || null,
+    };
+
+    const res = editingId
+      ? await fetch(`/api/expenses/${editingId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      : await fetch("/api/expenses", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...payload,
+            employeeName: form.employeeName || undefined,
+            notes: form.notes || undefined,
+          }),
+        });
+
     if (!res.ok) {
       const j = await res.json();
       alert(j.error || "Failed");
       return;
     }
-    setForm((f) => ({
-      ...f,
-      title: "",
-      amount: "",
-      employeeName: "",
-      notes: "",
-    }));
+
+    cancelEdit();
     setFilter((f) => ({ ...f, date: entryDate, scope: f.scope }));
+    await load();
   }
 
   async function remove(id: string) {
     if (!confirm("Delete this expense?")) return;
     await fetch(`/api/expenses/${id}`, { method: "DELETE" });
+    if (editingId === id) cancelEdit();
     await load();
   }
 
@@ -119,7 +167,7 @@ export default function ExpensesPage() {
     <div>
       <PageHeader
         title="Expenses"
-        description="Record rent, electricity, salaries, and other club costs. These reduce Actual Profit on the dashboard."
+        description="Record rent, electricity, salaries, and other club costs. These reduce Actual Profit on the dashboard. Expenses can be edited within 24 hours."
         actions={
           <DateFilterControls
             value={filter}
@@ -221,10 +269,15 @@ export default function ExpensesPage() {
             onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
           />
         </div>
-        <div className="md:col-span-3">
+        <div className="md:col-span-3 flex flex-wrap gap-2">
           <Button type="submit" variant="secondary">
-            Add expense
+            {editingId ? "Save changes" : "Add expense"}
           </Button>
+          {editingId ? (
+            <Button type="button" variant="ghost" onClick={cancelEdit}>
+              Cancel edit
+            </Button>
+          ) : null}
         </div>
       </form>
 
@@ -254,39 +307,58 @@ export default function ExpensesPage() {
                   </td>
                 </tr>
               ) : (
-                expenses.map((e) => (
-                  <tr
-                    key={e.id}
-                    className="border-b border-[var(--color-primary)]/5"
-                  >
-                    <td className="px-4 py-3">
-                      {new Date(e.expenseDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-4 py-3 font-medium">{e.category}</td>
-                    <td className="px-4 py-3">
-                      {e.title}
-                      {e.notes ? (
-                        <span className="block text-xs text-[var(--color-text)]/45">
-                          {e.notes}
-                        </span>
-                      ) : null}
-                    </td>
-                    <td className="px-4 py-3">{e.employeeName || "—"}</td>
-                    <td className="px-4 py-3 text-right font-[family-name:var(--font-heading)] font-bold">
-                      {money(e.amount, "Rs", { whole: true })}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        className="cursor-pointer rounded p-1.5 text-[var(--color-text)]/40 transition-colors hover:bg-red-50 hover:text-red-600"
-                        onClick={() => remove(e.id)}
-                        aria-label="Delete expense"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                expenses.map((e) => {
+                  const editable = canEditExpense(e.createdAt);
+                  return (
+                    <tr
+                      key={e.id}
+                      className={
+                        editingId === e.id
+                          ? "border-b border-[var(--color-primary)]/5 bg-[var(--color-primary)]/5"
+                          : "border-b border-[var(--color-primary)]/5"
+                      }
+                    >
+                      <td className="px-4 py-3">
+                        {new Date(e.expenseDate).toLocaleDateString()}
+                      </td>
+                      <td className="px-4 py-3 font-medium">{e.category}</td>
+                      <td className="px-4 py-3">
+                        {e.title}
+                        {e.notes ? (
+                          <span className="block text-xs text-[var(--color-text)]/45">
+                            {e.notes}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-3">{e.employeeName || "—"}</td>
+                      <td className="px-4 py-3 text-right font-[family-name:var(--font-heading)] font-bold">
+                        {money(e.amount, "Rs", { whole: true })}
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {editable ? (
+                            <button
+                              type="button"
+                              className="cursor-pointer rounded p-1.5 text-[var(--color-text)]/40 transition-colors hover:bg-[var(--color-primary)]/8 hover:text-[var(--color-primary)]"
+                              onClick={() => startEdit(e)}
+                              aria-label="Edit expense"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            className="cursor-pointer rounded p-1.5 text-[var(--color-text)]/40 transition-colors hover:bg-red-50 hover:text-red-600"
+                            onClick={() => remove(e.id)}
+                            aria-label="Delete expense"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
