@@ -89,7 +89,7 @@ export default function SessionsPage() {
       {loading ? (
         <TableSkeleton rows={8} cols={6} />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[var(--color-primary)]/10 bg-white/90 shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] shadow-sm">
           <table className="w-full min-w-[960px] text-left text-sm">
             <thead className="border-b border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 text-xs uppercase tracking-wide text-[var(--color-text)]/55">
               <tr>

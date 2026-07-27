@@ -102,7 +102,7 @@ export default function DashboardPage() {
       {loading && !data ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl bg-white/70" />
+            <div key={i} className="h-24 animate-pulse rounded-xl bg-[var(--color-surface-muted)]" />
           ))}
         </div>
       ) : (
@@ -176,7 +176,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="mt-8 grid gap-6 lg:grid-cols-5">
-            <div className="rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm lg:col-span-3">
+            <div className="rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-4 shadow-sm lg:col-span-3">
               <h2 className="mb-4 font-[family-name:var(--font-heading)] text-sm font-bold text-[var(--color-primary)]">
                 Revenue vs expenses
               </h2>
@@ -185,8 +185,18 @@ export default function DashboardPage() {
                   <BarChart data={data?.revenueSeries || []}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#fecaca" />
                     <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
+                    <YAxis
+                      tick={{ fontSize: 11 }}
+                      tickFormatter={(v) =>
+                        Math.round(Number(v)).toLocaleString()
+                      }
+                    />
+                    <Tooltip
+                      formatter={(value, name) => [
+                        money(Number(value) || 0, sym, { whole: true }),
+                        name,
+                      ]}
+                    />
                     <Legend />
                     <Bar dataKey="revenue" fill="#DC2626" name="Revenue" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="expenses" fill="#FBBF24" name="Expenses" radius={[4, 4, 0, 0]} />
@@ -195,7 +205,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm lg:col-span-2">
+            <div className="rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-4 shadow-sm lg:col-span-2">
               <h2 className="mb-4 font-[family-name:var(--font-heading)] text-sm font-bold text-[var(--color-primary)]">
                 Recent sessions
               </h2>

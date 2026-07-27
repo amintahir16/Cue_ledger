@@ -17,9 +17,9 @@ export async function GET() {
 
 const createSchema = z.object({
   name: z.string().min(1).max(100),
-  phone: z.string().optional(),
-  email: z.string().email().optional().or(z.literal("")),
-  notes: z.string().optional(),
+  phone: z.string().nullable().optional(),
+  email: z.string().email().optional().or(z.literal("")).nullable(),
+  notes: z.string().nullable().optional(),
 });
 
 export async function POST(req: Request) {
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       name: parsed.data.name,
       phone: parsed.data.phone || null,
       email: parsed.data.email || null,
-      notes: parsed.data.notes,
+      notes: parsed.data.notes || null,
     },
   });
 

@@ -6,8 +6,28 @@
   --color-cta: #fbbf24;
   --color-background: #fef2f2;
   --color-text: #7f1d1d;
+  --color-surface: #ffffff;
+  --color-surface-muted: rgba(255, 255, 255, 0.78);
+  --color-on-cta: #7f1d1d;
+  --color-dot: #7f1d1d;
+  --color-danger-soft: #fef2f2;
   --font-heading: var(--font-fira-code), ui-monospace, monospace;
   --font-body: var(--font-fira-sans), system-ui, sans-serif;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --color-primary: #f87171;
+  --color-secondary: #ef4444;
+  --color-cta: #fbbf24;
+  --color-background: #140c0c;
+  --color-text: #fecaca;
+  --color-surface: #1f1414;
+  --color-surface-muted: rgba(31, 20, 20, 0.88);
+  --color-on-cta: #7f1d1d;
+  --color-dot: #fecaca;
+  --color-danger-soft: rgba(248, 113, 113, 0.14);
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -26,6 +46,10 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+html {
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 body {

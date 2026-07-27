@@ -183,7 +183,7 @@ export default function ExpensesPage() {
 
       <div className="mb-6 max-w-xs">
         {loading ? (
-          <div className="rounded-xl border border-[var(--color-primary)]/10 border-l-4 border-l-[var(--color-primary)] bg-white/90 p-4 shadow-sm">
+          <div className="rounded-xl border border-[var(--color-primary)]/10 border-l-4 border-l-[var(--color-primary)] bg-[var(--color-surface)] p-4 shadow-sm">
             <Skeleton className="h-3 w-28" />
             <Skeleton className="mt-3 h-7 w-24" />
           </div>
@@ -198,7 +198,7 @@ export default function ExpensesPage() {
 
       <form
         onSubmit={onSubmit}
-        className="mb-8 grid gap-3 rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm md:grid-cols-3"
+        className="mb-8 grid gap-3 rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-4 shadow-sm md:grid-cols-3"
       >
         <div>
           <Label htmlFor="cat">Category</Label>
@@ -284,7 +284,7 @@ export default function ExpensesPage() {
       {loading ? (
         <TableSkeleton rows={5} cols={5} />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[var(--color-primary)]/10 bg-white/90 shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] shadow-sm">
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 text-xs uppercase tracking-wide text-[var(--color-text)]/55">
               <tr>
@@ -348,7 +348,7 @@ export default function ExpensesPage() {
                           ) : null}
                           <button
                             type="button"
-                            className="cursor-pointer rounded p-1.5 text-[var(--color-text)]/40 transition-colors hover:bg-red-50 hover:text-red-600"
+                            className="cursor-pointer rounded p-1.5 text-[var(--color-text)]/40 transition-colors hover:bg-[var(--color-danger-soft)] hover:text-red-600"
                             onClick={() => remove(e.id)}
                             aria-label="Delete expense"
                           >

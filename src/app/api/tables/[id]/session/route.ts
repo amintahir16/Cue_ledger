@@ -57,13 +57,23 @@ export async function POST(req: Request, ctx: Ctx) {
       return badRequest("Hourly rate is not configured. Set it in Settings.");
     }
 
+    let resolvedCustomerId: string | null = null;
+    let resolvedCustomerName: string | null = customerName?.trim() || null;
+
+    if (customerId) {
+      const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+      if (!customer) return badRequest("Customer not found");
+      resolvedCustomerId = customer.id;
+      resolvedCustomerName = customer.name;
+    }
+
     const now = new Date();
     const [session] = await prisma.$transaction([
       prisma.gameSession.create({
         data: {
           tableId,
-          customerId: customerId || null,
-          customerName: customerName || null,
+          customerId: resolvedCustomerId,
+          customerName: resolvedCustomerName,
           status: "ACTIVE",
           startedAt: now,
           hourlyRate: sessionRate,

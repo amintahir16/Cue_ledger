@@ -71,14 +71,14 @@ export function AppShell({
           className="absolute inset-0 opacity-[0.035]"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 1px 1px, #7F1D1D 1px, transparent 0)",
+              "radial-gradient(circle at 1px 1px, var(--color-dot) 1px, transparent 0)",
             backgroundSize: "24px 24px",
           }}
         />
       </div>
 
       <div className="relative mx-auto flex min-h-screen max-w-[1440px]">
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-[var(--color-primary)]/10 bg-white/70 p-4 backdrop-blur-md md:flex">
+        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-[var(--color-primary)]/10 bg-[var(--color-surface-muted)] p-4 backdrop-blur-md md:flex">
           <div className="mb-8 flex items-start gap-3 px-2 pt-2">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)] text-white shadow-md">
               <CircleDot className="h-5 w-5" />
@@ -118,7 +118,7 @@ export function AppShell({
           <button
             type="button"
             onClick={handleLogout}
-            className="mt-4 flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--color-text)]/70 transition-colors duration-200 hover:bg-red-50 hover:text-[var(--color-primary)]"
+            className="mt-4 flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-[var(--color-text)]/70 transition-colors duration-200 hover:bg-[var(--color-danger-soft)] hover:text-[var(--color-primary)]"
           >
             <LogOut className="h-4 w-4" />
             Sign out
@@ -126,7 +126,7 @@ export function AppShell({
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-[var(--color-primary)]/10 bg-white/80 px-4 py-3 backdrop-blur-md md:hidden">
+          <header className="sticky top-0 z-20 border-b border-[var(--color-primary)]/10 bg-[var(--color-surface-muted)] px-4 py-3 backdrop-blur-md md:hidden">
             <div className="flex items-center justify-between">
               <div className="flex min-w-0 items-start gap-2">
                 <CircleDot className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-primary)]" />
@@ -140,7 +140,7 @@ export function AppShell({
               <button
                 type="button"
                 onClick={handleLogout}
-                className="cursor-pointer rounded-lg p-2 hover:bg-red-50"
+                className="cursor-pointer rounded-lg p-2 hover:bg-[var(--color-danger-soft)]"
                 aria-label="Sign out"
               >
                 <LogOut className="h-4 w-4" />

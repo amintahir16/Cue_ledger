@@ -159,7 +159,7 @@ export default function ClosingPage() {
             {Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm"
+                className="rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-4 shadow-sm"
               >
                 <div className="flex justify-between gap-2">
                   <Skeleton className="h-4 w-28" />
@@ -173,7 +173,7 @@ export default function ClosingPage() {
         <>
           <form
             onSubmit={onSubmit}
-            className="mb-8 grid gap-3 rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm md:grid-cols-2"
+            className="mb-8 grid gap-3 rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-4 shadow-sm md:grid-cols-2"
           >
             <div>
               <Label htmlFor="entry-date">Entry date</Label>
@@ -274,7 +274,7 @@ export default function ClosingPage() {
               closings.map((c) => (
                 <div
                   key={c.id}
-                  className="rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm"
+                  className="rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-4 shadow-sm"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="font-semibold">

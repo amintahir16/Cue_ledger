@@ -23,7 +23,7 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-[var(--color-primary)]/10 border-l-4 bg-white/90 p-4 shadow-sm transition-colors duration-200",
+        "rounded-xl border border-[var(--color-primary)]/10 border-l-4 bg-[var(--color-surface)] p-4 shadow-sm transition-colors duration-200",
         accents[accent],
         className,
       )}
@@ -77,7 +77,7 @@ export function Button({
 }) {
   const variants = {
     primary:
-      "bg-[var(--color-cta)] text-[#7F1D1D] hover:bg-[#F59E0B] shadow-sm",
+      "bg-[var(--color-cta)] text-[var(--color-on-cta)] hover:bg-[#F59E0B] shadow-sm",
     secondary:
       "bg-[var(--color-primary)] text-white hover:bg-[var(--color-secondary)]",
     ghost: "bg-transparent hover:bg-[var(--color-primary)]/8 text-[var(--color-text)]",
@@ -108,7 +108,7 @@ export function Input({
   return (
     <input
       className={cn(
-        "w-full rounded-lg border border-[var(--color-primary)]/20 bg-white px-3 py-2 text-sm text-[var(--color-text)] outline-none transition-colors duration-200 placeholder:text-[var(--color-text)]/40 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20",
+        "w-full rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] outline-none transition-colors duration-200 placeholder:text-[var(--color-text)]/40 focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20",
         className,
       )}
       {...props}
@@ -124,7 +124,7 @@ export function Select({
   return (
     <select
       className={cn(
-        "w-full cursor-pointer rounded-lg border border-[var(--color-primary)]/20 bg-white px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20",
+        "w-full cursor-pointer rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20",
         className,
       )}
       {...props}
@@ -168,7 +168,7 @@ export function TableSkeleton({
   cols?: number;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-[var(--color-primary)]/10 bg-white/90 shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] shadow-sm">
       <div className="border-b border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 px-4 py-3">
         <div className="flex gap-4">
           {Array.from({ length: cols }).map((_, i) => (
@@ -202,7 +202,7 @@ export function CardGridSkeleton({
       {Array.from({ length: count }).map((_, i) => (
         <div
           key={i}
-          className="rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm"
+          className="rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-4 shadow-sm"
         >
           <Skeleton className="h-4 w-32" />
           <Skeleton className="mt-3 h-3 w-40" />
@@ -215,7 +215,7 @@ export function CardGridSkeleton({
 
 export function FormSkeleton({ fields = 6 }: { fields?: number }) {
   return (
-    <div className="mb-8 grid gap-3 rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm md:grid-cols-2">
+    <div className="mb-8 grid gap-3 rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-4 shadow-sm md:grid-cols-2">
       {Array.from({ length: fields }).map((_, i) => (
         <div key={i}>
           <Skeleton className="mb-2 h-3 w-16" />

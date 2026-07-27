@@ -2,8 +2,11 @@
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Moon, Sun } from "lucide-react";
 import { CLUB_NAME_UPDATED_EVENT } from "@/components/app-shell";
+import { useTheme, type Theme } from "@/components/theme-provider";
 import { Button, FormSkeleton, Input, Label, PageHeader } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 type Settings = {
   clubName: string;
@@ -18,6 +21,7 @@ type Settings = {
 
 export default function SettingsPage() {
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
   const [form, setForm] = useState<Settings | null>(null);
   const [saved, setSaved] = useState(false);
   const [syncNote, setSyncNote] = useState("");
@@ -108,6 +112,34 @@ export default function SettingsPage() {
     }
   }
 
+  function ThemeOption({
+    value,
+    label,
+    icon: Icon,
+  }: {
+    value: Theme;
+    label: string;
+    icon: typeof Sun;
+  }) {
+    const active = theme === value;
+    return (
+      <button
+        type="button"
+        onClick={() => setTheme(value)}
+        className={cn(
+          "flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors duration-200",
+          active
+            ? "border-[var(--color-primary)] bg-[var(--color-primary)] text-white shadow-sm"
+            : "border-[var(--color-primary)]/20 bg-[var(--color-surface)] text-[var(--color-text)]/80 hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5",
+        )}
+        aria-pressed={active}
+      >
+        <Icon className="h-4 w-4" />
+        {label}
+      </button>
+    );
+  }
+
   if (!form) {
     return (
       <div>
@@ -126,12 +158,24 @@ export default function SettingsPage() {
     <div>
       <PageHeader
         title="Club settings"
-        description="Standard and VIP hourly rates, currency, and per-second billing rules. Saving rates updates all matching tables."
+        description="Standard and VIP hourly rates, currency, appearance, and per-second billing rules. Saving rates updates all matching tables."
       />
+
+      <div className="mb-6 max-w-xl rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-5 shadow-sm">
+        <Label>Appearance</Label>
+        <p className="mb-3 text-xs text-[var(--color-text)]/50">
+          Switch between light and dark theme. Your choice is saved on this
+          device.
+        </p>
+        <div className="flex gap-2">
+          <ThemeOption value="light" label="Light" icon={Sun} />
+          <ThemeOption value="dark" label="Dark" icon={Moon} />
+        </div>
+      </div>
 
       <form
         onSubmit={onSubmit}
-        className="max-w-xl space-y-4 rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-5 shadow-sm"
+        className="max-w-xl space-y-4 rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-5 shadow-sm"
       >
         <div>
           <Label htmlFor="clubName">Club name</Label>
@@ -221,8 +265,8 @@ export default function SettingsPage() {
           </div>
         </div>
         <p className="text-xs text-[var(--color-text)]/50">
-          Play time is rounded up to this many seconds when charging (e.g. 1 = every
-          second, 30 = half-minute blocks).
+          Play time is rounded up to this many seconds when charging (e.g. 1 =
+          every second, 30 = half-minute blocks).
         </p>
         <div>
           <Label htmlFor="tz">Timezone</Label>
@@ -238,11 +282,11 @@ export default function SettingsPage() {
               Save settings
             </Button>
             {saved ? (
-              <span className="text-sm font-medium text-emerald-700">Saved</span>
+              <span className="text-sm font-medium text-emerald-600">Saved</span>
             ) : null}
           </div>
           {syncNote ? (
-            <p className="text-sm text-emerald-700">{syncNote}</p>
+            <p className="text-sm text-emerald-600">{syncNote}</p>
           ) : null}
         </div>
       </form>

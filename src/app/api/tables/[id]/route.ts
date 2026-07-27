@@ -13,6 +13,7 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const schema = z.object({
     name: z.string().min(1).max(80).optional(),
+    number: z.number().int().positive().optional(),
     hourlyRate: z.number().positive().optional(),
     isVip: z.boolean().optional(),
     notes: z.string().nullable().optional(),
@@ -24,6 +25,15 @@ export async function PATCH(req: Request, ctx: Ctx) {
 
   const table = await prisma.snookerTable.findUnique({ where: { id } });
   if (!table) return notFound("Table not found");
+
+  if (parsed.data.number !== undefined && parsed.data.number !== table.number) {
+    const clash = await prisma.snookerTable.findUnique({
+      where: { number: parsed.data.number },
+    });
+    if (clash) {
+      return badRequest(`Table number ${parsed.data.number} already exists`);
+    }
+  }
 
   const updated = await prisma.snookerTable.update({
     where: { id },

@@ -99,7 +99,7 @@ export default function ProductsPage() {
 
       <form
         onSubmit={onSubmit}
-        className="mb-8 grid gap-3 rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm md:grid-cols-4"
+        className="mb-8 grid gap-3 rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-4 shadow-sm md:grid-cols-4"
       >
         <div>
           <Label htmlFor="name">Name</Label>
@@ -145,7 +145,7 @@ export default function ProductsPage() {
       {loading ? (
         <TableSkeleton rows={5} cols={4} />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[var(--color-primary)]/10 bg-white/90 shadow-sm">
+        <div className="overflow-x-auto rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] shadow-sm">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-[var(--color-primary)]/10 bg-[var(--color-primary)]/5 text-xs uppercase tracking-wide text-[var(--color-text)]/55">
               <tr>
@@ -192,7 +192,7 @@ export default function ProductsPage() {
                         </button>
                         <button
                           type="button"
-                          className="cursor-pointer rounded p-1.5 text-[var(--color-text)]/40 transition-colors hover:bg-red-50 hover:text-red-600"
+                          className="cursor-pointer rounded p-1.5 text-[var(--color-text)]/40 transition-colors hover:bg-[var(--color-danger-soft)] hover:text-red-600"
                           onClick={() => remove(p.id)}
                           aria-label={`Delete ${p.name}`}
                         >

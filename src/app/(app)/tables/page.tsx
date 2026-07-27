@@ -3,11 +3,13 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import {
   Pause,
+  Pencil,
   Play,
   Plus,
   RotateCcw,
   Square,
   Timer,
+  Trash2,
   X,
 } from "lucide-react";
 import { Button, Input, Label, PageHeader, Select } from "@/components/ui";
@@ -50,6 +52,12 @@ type TableRow = {
 };
 
 type Product = { id: string; name: string; price: number };
+
+type CustomerOption = {
+  id: string;
+  name: string;
+  phone: string | null;
+};
 
 type ClubBilling = {
   minimumCharge: number;
@@ -96,6 +104,7 @@ function LiveTimer({
 export default function TablesPage() {
   const [tables, setTables] = useState<TableRow[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [billing, setBilling] = useState<ClubBilling>({
     minimumCharge: 0,
     billingIncrementSeconds: 1,
@@ -104,12 +113,16 @@ export default function TablesPage() {
   });
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [showAdd, setShowAdd] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [stopModal, setStopModal] = useState<{
     tableId: string;
     preview: { tableCharge: number; addons: number; total: number; duration: string };
   } | null>(null);
-  const [customerNames, setCustomerNames] = useState<Record<string, string>>({});
+  const [selectedCustomerIds, setSelectedCustomerIds] = useState<
+    Record<string, string>
+  >({});
+  const [walkInNames, setWalkInNames] = useState<Record<string, string>>({});
   const [form, setForm] = useState({
     name: "",
     number: "",
@@ -117,17 +130,54 @@ export default function TablesPage() {
     isVip: false,
   });
 
+  const emptyForm = { name: "", number: "", hourlyRate: "", isVip: false };
+
+  function openAddForm() {
+    setEditingId(null);
+    setForm(emptyForm);
+    setFormOpen(true);
+  }
+
+  function openEditForm(table: TableRow) {
+    setEditingId(table.id);
+    setForm({
+      name: table.name,
+      number: String(table.number),
+      hourlyRate: String(table.hourlyRate),
+      isVip: table.isVip,
+    });
+    setFormOpen(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    setEditingId(null);
+    setForm(emptyForm);
+  }
+
   const load = useCallback(async () => {
-    const [tRes, pRes, sRes] = await Promise.all([
+    const [tRes, pRes, sRes, cRes] = await Promise.all([
       fetch("/api/tables"),
       fetch("/api/products"),
       fetch("/api/settings"),
+      fetch("/api/customers"),
     ]);
     const tJson = await tRes.json();
     const pJson = await pRes.json();
     const sJson = await sRes.json();
+    const cJson = await cRes.json();
     setTables(tJson.tables || []);
     setProducts(pJson.products || []);
+    setCustomers(
+      (cJson.customers || []).map(
+        (c: { id: string; name: string; phone: string | null }) => ({
+          id: c.id,
+          name: c.name,
+          phone: c.phone,
+        }),
+      ),
+    );
     if (sJson.settings) {
       setBilling({
         minimumCharge: sJson.settings.minimumCharge ?? 0,
@@ -174,30 +224,61 @@ export default function TablesPage() {
     }
   }
 
-  async function onAddTable(e: FormEvent) {
+  async function onSaveTable(e: FormEvent) {
     e.preventDefault();
-    const res = await fetch("/api/tables", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: form.name,
-        number: Number(form.number),
-        isVip: form.isVip,
-        hourlyRate: form.hourlyRate
-          ? Number(form.hourlyRate)
-          : form.isVip
-            ? billing.vipHourlyRate
-            : billing.defaultHourlyRate,
-      }),
-    });
+    const payload = {
+      name: form.name,
+      number: Number(form.number),
+      isVip: form.isVip,
+      hourlyRate: form.hourlyRate
+        ? Number(form.hourlyRate)
+        : form.isVip
+          ? billing.vipHourlyRate
+          : billing.defaultHourlyRate,
+    };
+
+    const res = await fetch(
+      editingId ? `/api/tables/${editingId}` : "/api/tables",
+      {
+        method: editingId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
     const json = await res.json();
     if (!res.ok) {
-      alert(json.error || "Could not add table");
+      alert(json.error || (editingId ? "Could not update table" : "Could not add table"));
       return;
     }
-    setForm({ name: "", number: "", hourlyRate: "", isVip: false });
-    setShowAdd(false);
+    closeForm();
     await load();
+  }
+
+  async function onDeleteTable(table: TableRow) {
+    if (table.status !== "AVAILABLE") {
+      alert("Stop or reset the active game before deleting this table.");
+      return;
+    }
+    if (
+      !confirm(
+        `Delete ${table.name} (#${table.number})? This removes it from the floor.`,
+      )
+    ) {
+      return;
+    }
+    setBusyId(table.id);
+    try {
+      const res = await fetch(`/api/tables/${table.id}`, { method: "DELETE" });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(json.error || "Could not delete table");
+        return;
+      }
+      if (editingId === table.id) closeForm();
+      await load();
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function prepareStop(table: TableRow) {
@@ -266,18 +347,34 @@ export default function TablesPage() {
         title="Tables floor"
         description={`${tables.length} tables · ${occupied} in play. Start, pause, stop, and reset each table timer.`}
         actions={
-          <Button variant="secondary" onClick={() => setShowAdd((v) => !v)}>
+          <Button
+            variant="secondary"
+            onClick={() => (formOpen && !editingId ? closeForm() : openAddForm())}
+          >
             <Plus className="h-4 w-4" />
             Add table
           </Button>
         }
       />
 
-      {showAdd ? (
+      {formOpen ? (
         <form
-          onSubmit={onAddTable}
-          className="mb-6 rounded-xl border border-[var(--color-primary)]/10 bg-white/90 p-4 shadow-sm"
+          onSubmit={onSaveTable}
+          className="mb-6 rounded-xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-4 shadow-sm"
         >
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="font-[family-name:var(--font-heading)] text-sm font-bold uppercase tracking-wide text-[var(--color-text)]/70">
+              {editingId ? "Edit table" : "Add table"}
+            </h2>
+            <button
+              type="button"
+              onClick={closeForm}
+              className="cursor-pointer rounded p-1 text-[var(--color-text)]/40 transition-colors duration-200 hover:bg-[var(--color-primary)]/5 hover:text-[var(--color-text)]"
+              aria-label="Close form"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
           <div className="grid items-end gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="min-w-0">
               <Label htmlFor="tname">Name</Label>
@@ -322,16 +419,23 @@ export default function TablesPage() {
               <Label htmlFor="tvip">Table type</Label>
               <div
                 id="tvip"
-                className="flex h-[42px] items-center gap-3 rounded-lg border border-[var(--color-primary)]/20 bg-white px-3"
+                className="flex h-[42px] items-center gap-3 rounded-lg border border-[var(--color-primary)]/20 bg-[var(--color-surface)] px-3"
               >
                 <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
                   <input
                     type="checkbox"
                     className="h-4 w-4 cursor-pointer accent-[var(--color-primary)]"
                     checked={form.isVip}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, isVip: e.target.checked }))
-                    }
+                    onChange={(e) => {
+                      const isVip = e.target.checked;
+                      setForm((f) => ({
+                        ...f,
+                        isVip,
+                        hourlyRate: String(
+                          isVip ? billing.vipHourlyRate : billing.defaultHourlyRate,
+                        ),
+                      }));
+                    }}
                   />
                   VIP table
                 </label>
@@ -344,9 +448,12 @@ export default function TablesPage() {
             {money(form.isVip ? billing.vipHourlyRate : billing.defaultHourlyRate)}
             /hr).
           </p>
-          <div className="mt-3 flex justify-end">
+          <div className="mt-3 flex justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={closeForm}>
+              Cancel
+            </Button>
             <Button type="submit" variant="primary">
-              Save table
+              {editingId ? "Update table" : "Save table"}
             </Button>
           </div>
         </form>
@@ -355,7 +462,7 @@ export default function TablesPage() {
       {loading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="h-64 animate-pulse rounded-2xl bg-white/70" />
+            <div key={i} className="h-64 animate-pulse rounded-2xl bg-[var(--color-surface-muted)]" />
           ))}
         </div>
       ) : (
@@ -373,7 +480,7 @@ export default function TablesPage() {
               <article
                 key={table.id}
                 className={cn(
-                  "animate-fade-up flex flex-col rounded-2xl border border-[var(--color-primary)]/10 bg-white/95 p-5 shadow-sm transition-colors duration-200",
+                  "animate-fade-up flex flex-col rounded-2xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-5 shadow-sm transition-colors duration-200",
                   table.status !== "AVAILABLE" && "ring-1 ring-[var(--color-primary)]/20",
                 )}
               >
@@ -385,26 +492,45 @@ export default function TablesPage() {
                         {table.name}
                       </h2>
                       {table.isVip ? (
-                        <span className="rounded bg-[var(--color-cta)]/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#7F1D1D]">
+                        <span className="rounded bg-[var(--color-cta)]/90 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--color-on-cta)]">
                           VIP
                         </span>
                       ) : null}
                     </div>
                     <p className="mt-1 text-xs text-[var(--color-text)]/55">
                       #{table.number} ·{" "}
-                      {money(
-                        session
-                          ? session.hourlyRate
-                          : table.isVip
-                            ? billing.vipHourlyRate
-                            : billing.defaultHourlyRate,
-                      )}
+                      {money(session ? session.hourlyRate : table.hourlyRate)}
                       /hr
                       {session ? " (this game)" : ""} ·{" "}
                       <span className="uppercase tracking-wide">{table.status}</span>
                     </p>
                   </div>
-                  <Timer className="h-5 w-5 text-[var(--color-primary)]/40" />
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      className="cursor-pointer rounded-md p-1.5 text-[var(--color-text)]/40 transition-colors duration-200 hover:bg-[var(--color-primary)]/5 hover:text-[var(--color-primary)]"
+                      onClick={() => openEditForm(table)}
+                      aria-label={`Edit ${table.name}`}
+                      title="Edit table"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      className="cursor-pointer rounded-md p-1.5 text-[var(--color-text)]/40 transition-colors duration-200 hover:bg-[var(--color-danger-soft)] hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                      onClick={() => onDeleteTable(table)}
+                      disabled={busyId === table.id || table.status !== "AVAILABLE"}
+                      aria-label={`Delete ${table.name}`}
+                      title={
+                        table.status !== "AVAILABLE"
+                          ? "Stop or reset the game before deleting"
+                          : "Delete table"
+                      }
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <Timer className="ml-1 h-5 w-5 text-[var(--color-primary)]/40" />
+                  </div>
                 </div>
 
                 {session ? (
@@ -467,20 +593,47 @@ export default function TablesPage() {
                     )}
                   </div>
                 ) : (
-                  <div className="mb-4">
-                    <Label htmlFor={`cust-${table.id}`}>Customer name (optional)</Label>
-                    <Input
-                      id={`cust-${table.id}`}
-                      placeholder="Walk-in"
-                      value={customerNames[table.id] || ""}
-                      onChange={(e) =>
-                        setCustomerNames((prev) => ({
-                          ...prev,
-                          [table.id]: e.target.value,
-                        }))
-                      }
-                    />
-                    <p className="mt-6 font-[family-name:var(--font-heading)] text-3xl font-bold tracking-wider text-[var(--color-text)]/20">
+                  <div className="mb-4 space-y-3">
+                    <div>
+                      <Label htmlFor={`cust-pick-${table.id}`}>Customer</Label>
+                      <Select
+                        id={`cust-pick-${table.id}`}
+                        value={selectedCustomerIds[table.id] || ""}
+                        onChange={(e) =>
+                          setSelectedCustomerIds((prev) => ({
+                            ...prev,
+                            [table.id]: e.target.value,
+                          }))
+                        }
+                      >
+                        <option value="">Walk-in</option>
+                        {customers.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                            {c.phone ? ` · ${c.phone}` : ""}
+                          </option>
+                        ))}
+                      </Select>
+                    </div>
+                    {!selectedCustomerIds[table.id] ? (
+                      <div>
+                        <Label htmlFor={`cust-${table.id}`}>
+                          Walk-in name (optional)
+                        </Label>
+                        <Input
+                          id={`cust-${table.id}`}
+                          placeholder="Walk-in"
+                          value={walkInNames[table.id] || ""}
+                          onChange={(e) =>
+                            setWalkInNames((prev) => ({
+                              ...prev,
+                              [table.id]: e.target.value,
+                            }))
+                          }
+                        />
+                      </div>
+                    ) : null}
+                    <p className="font-[family-name:var(--font-heading)] text-3xl font-bold tracking-wider text-[var(--color-text)]/20">
                       00:00:00
                     </p>
                   </div>
@@ -492,13 +645,23 @@ export default function TablesPage() {
                       className="col-span-2"
                       variant="success"
                       disabled={busyId === table.id}
-                      onClick={() =>
-                        runAction(table.id, "start", {
-                          customerName: customerNames[table.id] || undefined,
-                        }).then(() =>
-                          setCustomerNames((prev) => ({ ...prev, [table.id]: "" })),
-                        )
-                      }
+                      onClick={() => {
+                        const customerId = selectedCustomerIds[table.id] || undefined;
+                        const walkIn = walkInNames[table.id]?.trim();
+                        return runAction(table.id, "start", {
+                          ...(customerId
+                            ? { customerId }
+                            : walkIn
+                              ? { customerName: walkIn }
+                              : {}),
+                        }).then(() => {
+                          setSelectedCustomerIds((prev) => ({
+                            ...prev,
+                            [table.id]: "",
+                          }));
+                          setWalkInNames((prev) => ({ ...prev, [table.id]: "" }));
+                        });
+                      }}
                     >
                       <Play className="h-4 w-4" />
                       Start game
@@ -560,7 +723,7 @@ export default function TablesPage() {
 
       {stopModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <div className="w-full max-w-md rounded-2xl bg-[var(--color-surface)] p-6 shadow-xl">
             <h3 className="font-[family-name:var(--font-heading)] text-lg font-bold text-[var(--color-primary)]">
               End game & bill
             </h3>

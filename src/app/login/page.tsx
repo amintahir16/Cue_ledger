@@ -41,7 +41,7 @@ export default function LoginPage() {
           className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 1px 1px, #7F1D1D 1px, transparent 0)",
+              "radial-gradient(circle at 1px 1px, var(--color-dot) 1px, transparent 0)",
             backgroundSize: "28px 28px",
           }}
         />
@@ -62,7 +62,7 @@ export default function LoginPage() {
 
         <form
           onSubmit={onSubmit}
-          className="rounded-2xl border border-[var(--color-primary)]/10 bg-white/90 p-6 shadow-md backdrop-blur"
+          className="rounded-2xl border border-[var(--color-primary)]/10 bg-[var(--color-surface)] p-6 shadow-md backdrop-blur"
         >
           <div className="mb-4">
             <Label htmlFor="email">Email</Label>
