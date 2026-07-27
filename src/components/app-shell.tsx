@@ -79,7 +79,7 @@ export function AppShell({
 
       <div className="relative mx-auto flex min-h-screen max-w-[1440px]">
         <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-r border-[var(--color-primary)]/10 bg-[var(--color-surface-muted)] p-4 backdrop-blur-md md:flex">
-          <div className="mb-8 flex items-start gap-3 px-2 pt-2">
+          <div className="mb-8 flex items-center gap-3 px-2 pt-2">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--color-primary)] text-white shadow-md">
               <CircleDot className="h-5 w-5" />
             </div>
@@ -128,8 +128,8 @@ export function AppShell({
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-20 border-b border-[var(--color-primary)]/10 bg-[var(--color-surface-muted)] px-4 py-3 backdrop-blur-md md:hidden">
             <div className="flex items-center justify-between">
-              <div className="flex min-w-0 items-start gap-2">
-                <CircleDot className="mt-0.5 h-5 w-5 shrink-0 text-[var(--color-primary)]" />
+              <div className="flex min-w-0 items-center gap-2">
+                <CircleDot className="h-5 w-5 shrink-0 text-[var(--color-primary)]" />
                 <p
                   className="break-words font-[family-name:var(--font-heading)] font-bold leading-snug text-[var(--color-primary)]"
                   title={displayName}
