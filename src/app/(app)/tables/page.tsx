@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Pause,
   Pencil,
@@ -73,15 +73,41 @@ function LiveTimer({
   session: ActiveSession;
   billing: ClubBilling;
 }) {
-  const [now, setNow] = useState(() => Date.now());
+  const [, setTick] = useState(0);
 
   useEffect(() => {
     if (session.status === "PAUSED") return;
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
+
+    let timeoutId = 0;
+    let alive = true;
+
+    const pulse = () => {
+      if (!alive) return;
+      setTick((n) => n + 1);
+      // Sub-second cadence stays responsive on mobile browsers that throttle timers.
+      timeoutId = window.setTimeout(pulse, 250);
+    };
+
+    pulse();
+
+    const onResume = () => {
+      if (document.visibilityState === "visible") setTick((n) => n + 1);
+    };
+    document.addEventListener("visibilitychange", onResume);
+    window.addEventListener("pageshow", onResume);
+    window.addEventListener("focus", onResume);
+
+    return () => {
+      alive = false;
+      window.clearTimeout(timeoutId);
+      document.removeEventListener("visibilitychange", onResume);
+      window.removeEventListener("pageshow", onResume);
+      window.removeEventListener("focus", onResume);
+    };
   }, [session.status, session.id]);
 
-  const elapsed = getElapsedMs(session, new Date(now));
+  // Always derive from wall clock so parent re-renders can't freeze a stale "now".
+  const elapsed = getElapsedMs(session, new Date());
   const charge = calculateTableCharge({
     elapsedMs: elapsed,
     hourlyRate: session.hourlyRate,
@@ -131,6 +157,7 @@ export default function TablesPage() {
   });
 
   const emptyForm = { name: "", number: "", hourlyRate: "", isVip: false };
+  const loadSeq = useRef(0);
 
   function openAddForm() {
     setEditingId(null);
@@ -157,6 +184,7 @@ export default function TablesPage() {
   }
 
   const load = useCallback(async () => {
+    const seq = ++loadSeq.current;
     const [tRes, pRes, sRes, cRes] = await Promise.all([
       fetch("/api/tables"),
       fetch("/api/products"),
@@ -167,6 +195,8 @@ export default function TablesPage() {
     const pJson = await pRes.json();
     const sJson = await sRes.json();
     const cJson = await cRes.json();
+    // Ignore stale responses (common on mobile when focus triggers overlapping loads).
+    if (seq !== loadSeq.current) return;
     setTables(tJson.tables || []);
     setProducts(pJson.products || []);
     setCustomers(
@@ -191,11 +221,22 @@ export default function TablesPage() {
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 10000);
-    const onFocus = () => load();
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") load();
+    }, 10000);
+
+    let focusTimer = 0;
+    const onFocus = () => {
+      window.clearTimeout(focusTimer);
+      // Debounce: mobile fires focus often (keyboard, address bar, tab switch).
+      focusTimer = window.setTimeout(() => {
+        if (document.visibilityState === "visible") load();
+      }, 500);
+    };
     window.addEventListener("focus", onFocus);
     return () => {
       clearInterval(id);
+      window.clearTimeout(focusTimer);
       window.removeEventListener("focus", onFocus);
     };
   }, [load]);
